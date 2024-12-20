@@ -1,0 +1,96 @@
+
+name: Download Binaries from Source Repo
+
+on:
+  repository_dispatch:
+    types: [update_binaries]
+
+jobs:
+  release-binaries:
+    runs-on: ubuntu-22.04
+
+    steps:
+      # Step 1: Check out the target repository
+      - name: Check Out Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Fetch the client payload
+      - name: Read Dispatch Event Details
+        run: |
+          echo "Version: ${{ github.event.client_payload.version }}"
+          echo "Source Repo: ${{ github.event.client_payload.source_repo }}"
+
+      # Step 3: Fetch release and download binaries
+      - name: Fetch latest or specific release
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # Define the source repository
+          SOURCE_REPO="sefastech/clutta" 
+          
+          # Determine version to fetch
+          if [ -z "${{ github.event.client_payload.version }}" ]; then
+            RELEASE_URL="https://api.github.com/repos/$SOURCE_REPO/releases/latest"
+          else
+            RELEASE_URL="https://api.github.com/repos/$SOURCE_REPO/releases/tags/clutta-cli-${{ github.event.client_payload.version }}"
+          fi
+
+          # Fetch release data
+          curl -s -H "Authorization: token $GH_TOKEN" $RELEASE_URL > release.json
+          
+          # Extract download URL for the zip asset
+          DOWNLOAD_URL=$(jq -r '.assets[] | select(.name == "clutta-cli-binaries.zip").browser_download_url' release.json)
+
+          echo "DOWNLOAD URL: $DOWNLOAD_URL"
+          
+          if [ -z "$DOWNLOAD_URL" ]; then
+            echo "Error: No asset named 'clutta-cli-binaries.zip' found in release."
+            cat release.json  # 
+            exit 1
+          fi
+
+      - name: Extract Asset ID
+        id: extract-asset-id
+        run: |
+          ASSET_ID=$(jq -r '.assets[] | select(.name == "clutta-cli-binaries.zip").id' release.json)
+          echo "Asset ID: $ASSET_ID"
+          echo "ASSET_ID=$ASSET_ID" >> $GITHUB_ENV
+
+      - name: Download Asset
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          echo "assetID: $ASSET_ID"
+          curl -L -H "Authorization: token $GH_TOKEN" \
+               -H "Accept: application/octet-stream" \
+               https://api.github.com/repos/sefastech/clutta/releases/assets/$ASSET_ID \
+               -o clutta-cli-binaries.zip
+
+      # Step 4: Extract the binaries
+      - name: Extract CLI binaries
+        run: |
+          mkdir -p binaries
+          unzip -o clutta-cli-binaries.zip -d binaries
+          ls -l binaries
+
+      # Step 5: Upload each file as a release asset
+      - name: Upload Binaries
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.event.client_payload.version || 'latest' }}
+          name: clutta-cli-${{ github.event.client_payload.version || 'latest' }}
+          draft: false
+          prerelease: false
+          artifacts: |
+            binaries/clutta-cli_darwin_amd64
+            binaries/clutta-cli_darwin_arm64
+            binaries/clutta-cli_linux_amd64
+            binaries/clutta-cli_linux_arm64
+            binaries/clutta-cli_windows_amd64.exe
+            binaries/clutta-cli_windows_arm64.exe
+
+      # Step 6: Clean up temporary files
+      - name: Clean up
+        run: |
+          rm -rf clutta-cli-binaries.zip release.json binaries
