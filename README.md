@@ -30,14 +30,14 @@ To download the appropriate binary for your platform, navigate to the [Releases]
 
 For Linux (amd64):
 ```bash
-curl -LO  https://github.com/sefastech/clutta-cli-releases/blob/main/bin/vX.Y.Z/clutta-cli_linux_amd64
+curl -LO  https://github.com/sefastech/clutta-cli-releases/releases/download/vX.Y.Z/clutta-cli_linux_amd64
 chmod +x clutta-cli_linux_amd64
 ./clutta-cli_linux_amd64 --help
 ```
 
 For Windows
 ```bash
-Invoke-WebRequest -Uri  https://github.com/sefastech/clutta-cli-releases/blob/main/bin/vX.Y.Z/clutta-cli_windows_amd64.exe -OutFile clutta-cli_windows_amd64.exe
+Invoke-WebRequest -Uri  https://github.com/sefastech/clutta-cli-releases/releases/download/vX.Y.Z/clutta-cli_windows_amd64.exe -OutFile clutta-cli_windows_amd64.exe
 .\clutta-cli_windows_amd64.exe --help
 ```
 Replace vX.Y.Z with the specific version you wish to download.
