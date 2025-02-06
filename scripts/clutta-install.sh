@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# clutta-install.sh
-# This script installs or updates clutta-cli on macOS and Linux systems.
+set -e  # Exit immediately if any command fails
 
 # Function to display usage information
 usage() {
@@ -23,14 +22,14 @@ while getopts "v:" opt; do
     esac
 done
 
-# Determine the platform
+# Determine OS and architecture
 OS=$(uname -s)
 ARCH=$(uname -m)
 
 # Normalize OS name
 case "$OS" in
     Linux) OS="linux" ;;
-    Darwin) OS="macos" ;;
+    Darwin) OS="darwin" ;;
     *) echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
@@ -41,8 +40,10 @@ case "$ARCH" in
     *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-# Set the GitHub repo and fetch the latest version if not provided
+# Set the GitHub repo
 REPO="sefastech/clutta-cli-releases"
+
+# Fetch the latest version if not provided
 if [[ -z "$VERSION" ]]; then
     echo "Fetching the latest version..."
     VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
@@ -52,22 +53,29 @@ if [[ -z "$VERSION" ]]; then
     fi
 fi
 
-# Construct the download URL
-FILENAME="clutta-$OS-$ARCH"
+# Construct the correct filename based on actual GitHub releases
+FILENAME="clutta-cli_${OS}_${ARCH}"
 URL="https://github.com/$REPO/releases/download/$VERSION/$FILENAME"
 
 # Download the binary
 echo "Downloading clutta version $VERSION for $OS/$ARCH..."
 curl -L -o clutta "$URL"
 if [[ $? -ne 0 ]]; then
-    echo "Download failed."
+    echo "Download failed. Please check the release and filename."
+    exit 1
+fi
+
+# Check if the downloaded file is a valid executable
+if ! file clutta | grep -q "executable"; then
+    echo "Downloaded file is not an executable binary. Something went wrong."
+    cat clutta  # Show what was actually downloaded for debugging
     exit 1
 fi
 
 # Make the binary executable
 chmod +x clutta
 
-# Move the binary to /usr/local/bin (requires sudo)
+# Move the binary to /usr/local/bin
 echo "Installing clutta to /usr/local/bin..."
 sudo mv clutta /usr/local/bin/
 if [[ $? -ne 0 ]]; then
@@ -75,4 +83,4 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-echo "clutta version $VERSION installed successfully."
+echo "Clutta CLI version $VERSION installed successfully!"

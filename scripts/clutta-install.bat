@@ -1,6 +1,3 @@
-:: clutta-install.bat
-:: This script installs or updates clutta-cli on Windows systems.
-
 @echo off
 setlocal
 
@@ -24,16 +21,18 @@ shift
 goto parse_args
 :args_parsed
 
-:: Determine the architecture
+:: Determine OS and architecture
 set "ARCH=amd64"
 if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
     set "ARCH=arm64"
 )
 
-:: Set the download URL
+:: Set the GitHub repo
 set "REPO=sefastech/clutta-cli-releases"
+
+:: Fetch the latest version if not provided
 if not defined VERSION (
-    :: Fetch the latest version tag from GitHub API
+    echo Fetching the latest version...
     for /f "tokens=2 delims=:" %%i in ('curl -s https://api.github.com/repos/%REPO%/releases/latest ^| findstr /i "tag_name"') do (
         set "VERSION=%%i"
     )
@@ -44,12 +43,12 @@ if not defined VERSION (
     )
 )
 
-:: Construct the download URL
-set "FILE=clutta-windows-%ARCH%.exe"
-set "URL=https://github.com/%REPO%/releases/download/%VERSION%/%FILE%"
+:: Construct the correct filename based on actual GitHub releases
+set "FILENAME=clutta-cli_windows_%ARCH%.exe"
+set "URL=https://github.com/%REPO%/releases/download/%VERSION%/%FILENAME%"
 
 :: Download the binary
-echo Downloading clutta version %VERSION% for Windows/%ARCH%...
+echo Downloading Clutta version %VERSION% for Windows/%ARCH%...
 curl -L -o clutta.exe "%URL%"
 if errorlevel 1 (
     echo Download failed.
@@ -63,4 +62,4 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo clutta version %VERSION% installed successfully.
+echo Clutta CLI version %VERSION% installed successfully!
