@@ -46,7 +46,8 @@ REPO="sefastech/clutta-cli-releases"
 # Fetch the latest version if not provided
 if [[ -z "$VERSION" ]]; then
     echo "Fetching the latest version..."
-    VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+    VERSION=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p')
+
     if [[ -z "$VERSION" ]]; then
         echo "Failed to fetch the latest version."
         exit 1
