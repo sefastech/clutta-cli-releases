@@ -4,13 +4,21 @@ This repository hosts binary releases of the [Clutta](https://clutta.io) CLI, an
 
 ## Install
 
-The quickest way to install is with the install script, which detects your OS and architecture, downloads the correct binary, verifies the SHA-256 checksum, and places the binary in your PATH.
+**macOS and Linux**
 
 ```sh
 curl -fsSL https://clutta.io/install | sh
 ```
 
-Supported platforms are macOS (Apple Silicon and Intel) and Linux (x86_64).
+**Windows (PowerShell)**
+
+```powershell
+iwr -useb https://clutta.io/install.ps1 | iex
+```
+
+Both installers detect your architecture, download the correct binary, verify the SHA-256 checksum, and place the binary in your PATH.
+
+Supported platforms: macOS (Apple Silicon and Intel), Linux (x86\_64), Windows (x86\_64).
 
 ## Manual install
 

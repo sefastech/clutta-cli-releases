@@ -27,7 +27,9 @@ case "$OS" in
   Linux)  OS="linux"  ;;
   *)
     echo "error: unsupported operating system: $OS" >&2
-    echo "       clutta supports macOS and Linux." >&2
+    echo "" >&2
+    echo "       On Windows, install clutta from PowerShell:" >&2
+    echo "       iwr -useb https://clutta.io/install.ps1 | iex" >&2
     exit 1
     ;;
 esac
