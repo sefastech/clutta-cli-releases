@@ -126,25 +126,29 @@ echo "Checksum verified."
 
 chmod +x "${TMP_DIR}/${BINARY}"
 
+# Install location.
+#
+# By default Clutta installs to the user's local bin
+# (${HOME}/.local/bin) — same pattern as rustup, nvm, mise, volta,
+# pipx. This means:
+#   - No sudo. No password prompts. No hangs when piped from curl.
+#   - Works on every host whether the user has root or not.
+#   - The user just adds ~/.local/bin to PATH once (we print the line).
+#
+# Operators who want a system-wide install set CLUTTA_INSTALL_DIR
+# explicitly:
+#
+#   curl -fsSL https://clutta.io/install | CLUTTA_INSTALL_DIR=/usr/local/bin sudo -E sh
+#
+# (the sudo + -E lets the env var pass through; that path is for
+# admins, not beta engineers.)
 if [ -n "$CLUTTA_INSTALL_DIR" ]; then
-  # User specified a custom directory — honour it exactly.
   INSTALL_DIR="$CLUTTA_INSTALL_DIR"
-  mkdir -p "$INSTALL_DIR"
-  mv "${TMP_DIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
-elif [ -w "/usr/local/bin" ]; then
-  # /usr/local/bin is writable without elevation (common on macOS with Homebrew).
-  INSTALL_DIR="/usr/local/bin"
-  mv "${TMP_DIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
-elif command -v sudo >/dev/null 2>&1; then
-  # /usr/local/bin requires root — use sudo (will prompt for password).
-  INSTALL_DIR="/usr/local/bin"
-  sudo mv "${TMP_DIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
 else
-  # No sudo available — install to the user's local bin instead.
   INSTALL_DIR="${HOME}/.local/bin"
-  mkdir -p "$INSTALL_DIR"
-  mv "${TMP_DIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
 fi
+mkdir -p "$INSTALL_DIR"
+mv "${TMP_DIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 
@@ -152,13 +156,20 @@ echo ""
 echo "clutta ${VERSION} installed to ${INSTALL_DIR}/${BINARY}"
 
 # Warn if the install directory is not on PATH.
-if [ "$INSTALL_DIR" = "${HOME}/.local/bin" ]; then
-  echo ""
-  echo "note: ${INSTALL_DIR} may not be in your PATH."
-  echo "      Add this line to your shell profile (~/.bashrc, ~/.zshrc, etc.):"
-  echo ""
-  echo "      export PATH=\"\${HOME}/.local/bin:\${PATH}\""
-fi
+case ":${PATH}:" in
+  *":${INSTALL_DIR}:"*)
+    # Already on PATH; nothing to do.
+    ;;
+  *)
+    echo ""
+    echo "note: ${INSTALL_DIR} is not on your PATH yet."
+    echo "      Add this line to your shell profile (~/.bashrc, ~/.zshrc, or equivalent):"
+    echo ""
+    echo "      export PATH=\"${INSTALL_DIR}:\${PATH}\""
+    echo ""
+    echo "      Then reload the profile or open a new terminal."
+    ;;
+esac
 
 echo ""
 echo "Run 'clutta --help' to get started."
