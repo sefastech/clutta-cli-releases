@@ -59,7 +59,7 @@ else
   # /releases/latest only returns non-pre-release versions.
   # /releases returns all releases newest-first, including pre-releases.
   # During beta every release is a pre-release, so we must use /releases.
-  VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases" \
+  VERSION=$(curl -fsSL --retry 3 --retry-delay 1 --retry-connrefused "https://api.github.com/repos/${REPO}/releases" \
     | grep '"tag_name"' \
     | head -n 1 \
     | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
@@ -82,7 +82,7 @@ TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 echo "Downloading binary..."
-if ! curl -fsSL "${BASE_URL}/${ASSET}" -o "${TMP_DIR}/${BINARY}"; then
+if ! curl -fsSL --retry 3 --retry-delay 1 --retry-connrefused "${BASE_URL}/${ASSET}" -o "${TMP_DIR}/${BINARY}"; then
   echo "error: failed to download ${BASE_URL}/${ASSET}" >&2
   echo "       Check that version ${VERSION} exists at:" >&2
   echo "       https://github.com/${REPO}/releases" >&2
@@ -90,7 +90,7 @@ if ! curl -fsSL "${BASE_URL}/${ASSET}" -o "${TMP_DIR}/${BINARY}"; then
 fi
 
 echo "Downloading checksums..."
-if ! curl -fsSL "${BASE_URL}/sha256sums.txt" -o "${TMP_DIR}/sha256sums.txt"; then
+if ! curl -fsSL --retry 3 --retry-delay 1 --retry-connrefused "${BASE_URL}/sha256sums.txt" -o "${TMP_DIR}/sha256sums.txt"; then
   echo "error: failed to download sha256sums.txt" >&2
   exit 1
 fi
@@ -98,6 +98,20 @@ fi
 # ── Checksum verification ─────────────────────────────────────────────────────
 
 echo "Verifying checksum..."
+
+# If the binary vanished (or was zeroed) between download and now, a security
+# tool most likely quarantined it. Surface that clearly instead of a cryptic
+# hashing error under `set -e`. Clutta is not yet code-signed, so antivirus and
+# macOS Gatekeeper occasionally false-positive on the unsigned binary.
+if [ ! -s "${TMP_DIR}/${BINARY}" ]; then
+  echo "error: the downloaded binary disappeared before it could be verified." >&2
+  echo "       Antivirus or macOS Gatekeeper may have quarantined it (Clutta is" >&2
+  echo "       not yet code-signed). Allow \"clutta\" in your security tool, or" >&2
+  echo "       download it manually from:" >&2
+  echo "         ${BASE_URL}/${ASSET}" >&2
+  echo "       and verify it against sha256sums.txt." >&2
+  exit 1
+fi
 
 # sha256sum is standard on Linux; macOS ships shasum instead.
 if command -v sha256sum >/dev/null 2>&1; then
