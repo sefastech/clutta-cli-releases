@@ -43,12 +43,6 @@ case "$ARCH" in
     ;;
 esac
 
-if [ "$OS" = "linux" ] && [ "$ARCH" = "arm64" ]; then
-  echo "error: Linux arm64 is not yet supported." >&2
-  echo "       Supported platforms: macOS arm64, macOS amd64, Linux amd64." >&2
-  exit 1
-fi
-
 ASSET="${BINARY}-${OS}-${ARCH}"
 
 # ── Version resolution ────────────────────────────────────────────────────────
