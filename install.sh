@@ -8,9 +8,9 @@
 #   CLUTTA_VERSION      — install a specific version, e.g.:
 #                           export CLUTTA_VERSION=v0.0.1
 #                           curl -fsSL https://clutta.io/install | sh
-#                         defaults to the latest published release
+#                         defaults to the latest stable release
 #   CLUTTA_INSTALL_DIR  — install to a custom directory
-#                         defaults to /usr/local/bin
+#                         defaults to the user's ~/.local/bin
 
 set -e
 

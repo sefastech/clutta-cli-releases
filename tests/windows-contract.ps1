@@ -61,6 +61,13 @@ try {
         Write-Host "PASS: $Mode"
     }
     if ($env:Path -ne $OriginalPath -or [Environment]::GetEnvironmentVariable('Path', 'User') -ne $OriginalUserPath) { throw 'Test changed PATH' }
+    # A saved-script invocation must also fail with a nonzero process status.
+    $env:CLUTTA_VERSION = 'invalid'
+    $env:PROCESSOR_ARCHITECTURE = 'AMD64'
+    $HostExecutable = (Get-Process -Id $PID).Path
+    $Child = Start-Process -FilePath $HostExecutable -ArgumentList @('-NoProfile', '-File', ('"{0}/../install.ps1"' -f $PSScriptRoot)) -Wait -PassThru -NoNewWindow -RedirectStandardError (Join-Path $Root 'child-error.txt') -RedirectStandardOutput (Join-Path $Root 'child-output.txt')
+    if ($Child.ExitCode -eq 0) { throw 'Failed install returned success to automation' }
+    Write-Host 'PASS: saved-script failure returns nonzero'
 } finally {
     $env:PROCESSOR_ARCHITECTURE = $OriginalArchitecture
     $env:CLUTTA_VERSION = $OriginalVersion
