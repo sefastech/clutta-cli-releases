@@ -16,9 +16,40 @@ curl -fsSL https://clutta.io/install | sh
 iwr -useb https://clutta.io/install.ps1 | iex
 ```
 
-Both installers detect your architecture, download the correct binary, verify the SHA-256 checksum, and place the binary in your PATH.
+Both installers select the latest stable release by default and verify the exact
+artifact's SHA-256 checksum before replacing an existing installation. RCs require
+an explicit `CLUTTA_VERSION`. Downloads or verification failures preserve the
+existing binary.
 
-Supported platforms: macOS (Apple Silicon and Intel), Linux (x86\_64), Windows (x86\_64).
+Supported platforms: macOS (Apple Silicon and Intel), Linux (x86_64 and ARM64),
+Windows (x86_64, using 64-bit Windows PowerShell 5.1 or PowerShell 7).
+
+No elevation is needed for the default user-local directories. The shell installer
+prints PATH setup instructions if needed. Windows updates the user's PATH unless
+`CLUTTA_NO_PATH_UPDATE=1` is set. A blocked download is not proof of a false
+positive: do not disable protection or add exclusions. Contact your security
+administrator or Clutta support.
+
+PowerShell installation failures throw a catchable error without exiting the
+interactive terminal. For automation, run the downloaded script with
+`powershell -NoProfile -File install.ps1` or `pwsh -NoProfile -File install.ps1`
+and check its exit status.
+
+## Installer validation
+
+The installer workflow runs deterministic failure tests and installs the public
+Windows binary on a Windows runner with both PowerShell versions. It verifies
+the installed path, version, checksum and CLI execution without Clutta credentials.
+Test-owned installation directories are removed and persistent PATH is unchanged.
+
+Scheduled runs additionally test the live `clutta.io/install.ps1` endpoint.
+Before merging installer changes, CI uses the candidate script, not the old
+website copy. After merge, manually dispatch with `live=true` to verify rollout.
+The website caches upstream scripts for five minutes, so a merge does not prove
+that the live response has refreshed.
+
+Local shell checks: `python3 -m unittest discover -s tests -p 'test_*.py' -v`.
+Windows contract checks: `./tests/windows-contract.ps1`.
 
 ## Manual install
 
