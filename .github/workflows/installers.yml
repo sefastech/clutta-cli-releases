@@ -42,3 +42,11 @@ jobs:
           persist-credentials: false
       - run: sh -n install.sh
       - run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Published Linux binary installed by candidate script
+        env:
+          CLUTTA_INSTALL_DIR: ${{ runner.temp }}/clutta-installer-smoke/bin
+        run: |
+          sh install.sh
+          "$CLUTTA_INSTALL_DIR/clutta" --help
+          EXPECTED=$(curl -fsSL https://api.github.com/repos/sefastech/clutta-cli-releases/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"].removeprefix("v"))')
+          "$CLUTTA_INSTALL_DIR/clutta" version | grep -F "$EXPECTED"
