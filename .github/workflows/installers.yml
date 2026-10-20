@@ -1,0 +1,44 @@
+name: Installer validation
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '41 8 * * *'
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Test the live clutta.io Windows installer
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Failure boundaries and session preservation
+        run: ./tests/windows-contract.ps1
+      - name: Published binary installed by candidate script
+        run: ./tests/windows-smoke.ps1
+      - name: Published website installer
+        if: github.event_name == 'schedule' || inputs.live == true
+        run: ./tests/windows-smoke.ps1 -Live
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: sh -n install.sh
+      - run: python3 -m unittest discover -s tests -p 'test_*.py' -v

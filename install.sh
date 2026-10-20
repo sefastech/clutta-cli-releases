@@ -50,10 +50,8 @@ ASSET="${BINARY}-${OS}-${ARCH}"
 if [ -n "$CLUTTA_VERSION" ]; then
   VERSION="$CLUTTA_VERSION"
 else
-  # /releases/latest only returns non-pre-release versions.
-  # /releases returns all releases newest-first, including pre-releases.
-  # During beta every release is a pre-release, so we must use /releases.
-  VERSION=$(curl -fsSL --retry 3 --retry-delay 1 --retry-connrefused "https://api.github.com/repos/${REPO}/releases" \
+  # RCs require an explicit version override.
+  VERSION=$(curl -fsSL --retry 3 --retry-delay 1 --retry-connrefused "https://api.github.com/repos/${REPO}/releases/latest" \
     | grep '"tag_name"' \
     | head -n 1 \
     | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
@@ -63,6 +61,21 @@ else
     echo "       Check your internet connection or set CLUTTA_VERSION explicitly." >&2
     exit 1
   fi
+  if ! printf '%s\n' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+    echo "error: no valid stable release was returned" >&2
+    exit 1
+  fi
+fi
+
+case "$VERSION" in
+  *[!a-zA-Z0-9.-]*)
+    echo "error: invalid characters in CLUTTA_VERSION" >&2
+    exit 1
+    ;;
+esac
+if ! printf '%s\n' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$'; then
+  echo "error: invalid CLUTTA_VERSION" >&2
+  exit 1
 fi
 
 echo "Installing clutta ${VERSION} (${OS}/${ARCH})..."
@@ -93,17 +106,11 @@ fi
 
 echo "Verifying checksum..."
 
-# If the binary vanished (or was zeroed) between download and now, a security
-# tool most likely quarantined it. Surface that clearly instead of a cryptic
-# hashing error under `set -e`. Clutta is not yet code-signed, so antivirus and
-# macOS Gatekeeper occasionally false-positive on the unsigned binary.
+# A missing download is a failure, not proof of an antivirus false positive.
 if [ ! -s "${TMP_DIR}/${BINARY}" ]; then
   echo "error: the downloaded binary disappeared before it could be verified." >&2
-  echo "       Antivirus or macOS Gatekeeper may have quarantined it (Clutta is" >&2
-  echo "       not yet code-signed). Allow \"clutta\" in your security tool, or" >&2
-  echo "       download it manually from:" >&2
-  echo "         ${BASE_URL}/${ASSET}" >&2
-  echo "       and verify it against sha256sums.txt." >&2
+  echo "       If security software blocked it, ask your administrator or" >&2
+  echo "       Clutta support to investigate. Do not bypass endpoint protection." >&2
   exit 1
 fi
 
@@ -114,10 +121,10 @@ else
   ACTUAL=$(shasum -a 256 "${TMP_DIR}/${BINARY}" | awk '{print $1}')
 fi
 
-EXPECTED=$(grep "${ASSET}" "${TMP_DIR}/sha256sums.txt" | awk '{print $1}')
+EXPECTED=$(awk -v asset="$ASSET" 'NF == 2 && ($2 == asset || $2 == "*" asset) {print $1}' "${TMP_DIR}/sha256sums.txt")
 
-if [ -z "$EXPECTED" ]; then
-  echo "error: no checksum entry found for ${ASSET} in sha256sums.txt" >&2
+if ! printf '%s\n' "$EXPECTED" | grep -Eq '^[a-f0-9]{64}$' || [ "$(printf '%s\n' "$EXPECTED" | wc -l | tr -d ' ')" != 1 ]; then
+  echo "error: expected one valid checksum entry for ${ASSET}" >&2
   exit 1
 fi
 
