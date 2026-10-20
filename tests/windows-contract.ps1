@@ -52,9 +52,10 @@ try {
         $Destination = Join-Path $env:CLUTTA_INSTALL_DIR 'clutta.exe'
         [IO.File]::WriteAllText($Destination, 'old fixture')
         $Failed = $false
-        try { Invoke-Expression $Installer } catch { $Failed = $true }
+        $FailureMessage = ''
+        try { Invoke-Expression $Installer } catch { $Failed = $true; $FailureMessage = $_.Exception.Message }
         $SuccessExpected = $Mode -in @('stable', 'explicit-rc')
-        if ($Failed -eq $SuccessExpected) { throw "Unexpected failure result for $Mode" }
+        if ($Failed -eq $SuccessExpected) { throw "Unexpected failure result for ${Mode}: $FailureMessage" }
         $Expected = if ($SuccessExpected) { $script:Fixture } else { 'old fixture' }
         if ([IO.File]::ReadAllText($Destination) -ne $Expected) { throw "Existing binary not preserved for $Mode" }
         if ($ErrorActionPreference -ne $Preference) { throw 'Caller error preference changed' }

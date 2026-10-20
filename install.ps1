@@ -45,7 +45,7 @@
         $Staged = Join-Path $InstallDir ([IO.Path]::GetRandomFileName())
         Copy-Item -LiteralPath $BinaryPath -Destination $Staged
         if (Test-Path -LiteralPath $Destination) {
-            [IO.File]::Replace($Staged, $Destination, $null)
+            [IO.File]::Replace($Staged, $Destination, [NullString]::Value)
         } else {
             [IO.File]::Move($Staged, $Destination)
         }
