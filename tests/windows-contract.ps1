@@ -12,6 +12,7 @@ $OriginalNoPath = $env:CLUTTA_NO_PATH_UPDATE
 $OriginalPath = $env:Path
 $OriginalUserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 $Preference = $ErrorActionPreference
+$OriginalProgressPreference = $ProgressPreference
 $script:Fixture = 'new fixture binary'
 $script:Mode = ''
 
@@ -59,6 +60,7 @@ try {
         $Expected = if ($SuccessExpected) { $script:Fixture } else { 'old fixture' }
         if ([IO.File]::ReadAllText($Destination) -ne $Expected) { throw "Existing binary not preserved for $Mode" }
         if ($ErrorActionPreference -ne $Preference) { throw 'Caller error preference changed' }
+        if ($ProgressPreference -ne $OriginalProgressPreference) { throw 'Caller progress preference changed' }
         Write-Host "PASS: $Mode"
     }
     if ($env:Path -ne $OriginalPath -or [Environment]::GetEnvironmentVariable('Path', 'User') -ne $OriginalUserPath) { throw 'Test changed PATH' }

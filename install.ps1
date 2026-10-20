@@ -6,6 +6,9 @@
 # A terminating error is catchable and does not exit the interactive host shell.
 & {
     $ErrorActionPreference = 'Stop'
+    # Windows PowerShell 5.1 progress rendering slows large binary downloads.
+    # Keep this preference local to the installer scope.
+    $ProgressPreference = 'SilentlyContinue'
     $Repo = 'sefastech/clutta-cli-releases'
     if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
         throw 'Unsupported architecture. Clutta for Windows supports x64 PowerShell only.'
